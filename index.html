@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MailForge — Email Validator & Campaign Sender</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0c10;
+    --surface: #13151c;
+    --surface2: #1b1e28;
+    --border: #252836;
+    --border2: #313549;
+    --accent: #00e5a0;
+    --accent2: #0099ff;
+    --danger: #ff4f5e;
+    --warn: #ffb84d;
+    --text: #e8eaf0;
+    --muted: #6b7094;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 16px; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(0,229,160,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 30% at 10% 80%, rgba(0,153,255,0.05) 0%, transparent 70%);
+  }
+
+  /* ── Layout ── */
+  .shell {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+  }
+
+  header {
+    padding: 2.5rem 0 2rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+
+  .logo {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  .tagline {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 2rem;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 22px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--surface2); }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .pane { display: none; }
+  .pane.active { display: block; animation: fadeUp 0.25s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Grid ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media(max-width:640px) {
+    .g2, .g3, .g4 { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── Form elements ── */
+  .field { margin-bottom: 1.1rem; }
+  label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  input[type=text], input[type=email], textarea, select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+  }
+  textarea { min-height: 110px; }
+  ::placeholder { color: #3a3f56; }
+
+  .hint {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 5px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 1.2rem 0; align-items: center; }
+
+  button {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.82rem;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+    background: transparent;
+    color: var(--text);
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #00ffb3; border-color: #00ffb3; color: #000; }
+
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,79,94,0.1); }
+
+  .btn-blue { border-color: var(--accent2); color: var(--accent2); }
+  .btn-blue:hover { background: rgba(0,153,255,0.08); }
+
+  /* ── Metric cards ── */
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .metric-val { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+  .metric-lbl { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
+  .col-green { color: var(--accent); }
+  .col-red { color: var(--danger); }
+  .col-warn { color: var(--warn); }
+  .col-blue { color: var(--accent2); }
+
+  /* ── Result table ── */
+  .results-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 1.2rem;
+  }
+
+  .results-header {
+    display: grid;
+    grid-template-columns: 1fr 130px 110px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .result-row {
+    display: grid;
+    grid-template-columns: 1fr 130px 110px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    font-size: 0.82rem;
+    transition: background 0.1s;
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-row:hover { background: var(--surface2); }
+
+  .email-cell {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .reason-cell {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding-right: 8px;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .badge-valid   { background: rgba(0,229,160,0.12); color: var(--accent); }
+  .badge-invalid { background: rgba(255,79,94,0.12);  color: var(--danger); }
+  .badge-warn    { background: rgba(255,184,77,0.12);  color: var(--warn); }
+
+  /* ── Section heading ── */
+  .section-title {
+    font-size: 0.72rem;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 1rem;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .progress-track {
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #00c9ff);
+    border-radius: 3px;
+    transition: width 0.35s ease;
+    width: 0%;
+  }
+
+  /* ── Send log ── */
+  .log-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .log-wrap::-webkit-scrollbar { width: 4px; }
+  .log-wrap::-webkit-scrollbar-track { background: transparent; }
+  .log-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .log-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-ok  { background: var(--accent); box-shadow: 0 0 6px rgba(0,229,160,0.5); }
+  .dot-fail{ background: var(--danger); box-shadow: 0 0 6px rgba(255,79,94,0.5); }
+  .dot-skip{ background: var(--warn);   box-shadow: 0 0 6px rgba(255,184,77,0.5); }
+  .log-email { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log-name  { color: var(--muted); font-size: 0.7rem; }
+  .log-status { margin-left: auto; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* ── Preview panel ── */
+  .preview-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 1.2rem;
+  }
+  .preview-topbar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .preview-topbar::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); }
+  .preview-body { padding: 20px; }
+  .preview-field {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+  }
+  .preview-field:last-of-type { border-bottom: none; margin-bottom: 16px; }
+  .pf-key { color: var(--muted); min-width: 70px; }
+  .pf-val { color: var(--text); }
+  .preview-content {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: var(--text);
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    white-space: pre-wrap;
+  }
+  .name-token {
+    background: rgba(0,153,255,0.15);
+    color: var(--accent2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.78rem;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.4; }
+  .empty-msg { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.05em; }
+
+  /* ── Divider ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header>
+    <div>
+      <div class="logo">Mail<span>Forge</span></div>
+      <div class="tagline">Email Validator & Campaign Sender</div>
+    </div>
+    <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);text-align:right">
+      v1.0 &nbsp;·&nbsp; client-side only
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('validator')">⬡ Validator</button>
+    <button class="tab-btn" onclick="switchTab('campaign')">⬡ Campaign</button>
+  </div>
+
+  <!-- ══════════════════ VALIDATOR PANE ══════════════════ -->
+  <div id="pane-validator" class="pane active">
+
+    <div class="section-title">Input</div>
+
+    <div class="field">
+      <label>Email addresses — one per line or comma-separated</label>
+      <textarea id="v-input" placeholder="alice@example.com&#10;bad-email@&#10;bob@company.org, Bob&#10;invalid.address&#10;temp@mailinator.com&#10;carol@work.co.in"></textarea>
+      <p class="hint">// Paste any raw list — mixed separators, names, duplicates all handled automatically</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="runValidation()">▶ Run Validation</button>
+      <button onclick="clearValidator()">✕ Clear</button>
+      <button class="btn-blue" id="v-export-btn" style="display:none" onclick="exportValid()">↓ Export Valid (.txt)</button>
+      <button class="btn-blue" id="v-copy-btn" style="display:none" onclick="copyValid()">⎘ Copy Valid</button>
+      <button id="v-use-btn" style="display:none" onclick="useInCampaign()">→ Use in Campaign</button>
+    </div>
+
+    <!-- Stats row -->
+    <div id="v-stats" class="g4" style="display:none; margin-bottom:1.2rem"></div>
+
+    <!-- Results table -->
+    <div id="v-results"></div>
+  </div>
+
+  <!-- ══════════════════ CAMPAIGN PANE ══════════════════ -->
+  <div id="pane-campaign" class="pane">
+
+    <div class="section-title">Sender Info</div>
+    <div class="g2">
+      <div class="field">
+        <label>Sender Name</label>
+        <input type="text" id="c-name" placeholder="Acme Corp" />
+      </div>
+      <div class="field">
+        <label>Sender Email</label>
+        <input type="email" id="c-from" placeholder="hello@acmecorp.com" />
+      </div>
+    </div>
+
+    <div class="section-title">Email Content</div>
+    <div class="field">
+      <label>Subject Line</label>
+      <input type="text" id="c-subject" placeholder="We have something exciting for you 🚀" />
+    </div>
+    <div class="field">
+      <label>Email Body — use {{name}} for personalisation</label>
+      <textarea id="c-body" style="min-height:160px" placeholder="Hi {{name}},
+
+We are thrilled to share our latest update with you...
+
+Best,
+The Acme Team"></textarea>
+      <p class="hint">// {{name}} is replaced per recipient. Supports plain text.</p>
+    </div>
+
+    <div class="section-title">Recipients</div>
+    <div class="field">
+      <label>Recipient list — email or "email, First Name" per line</label>
+      <textarea id="c-recipients" placeholder="alice@example.com, Alice&#10;bob@domain.com, Bob&#10;carol@work.net&#10;invalid-skip@&#10;dave@company.io, Dave"></textarea>
+      <p class="hint">// Invalid emails are auto-detected and skipped before sending</p>
+    </div>
+
+    <div class="field">
+      <label>Delay between emails (ms)</label>
+      <input type="text" id="c-delay" value="500" style="width:120px" />
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="c-send-btn" onclick="runCampaign()">▶ Start Campaign</button>
+      <button class="btn-blue" onclick="previewEmail()">⊙ Preview Email</button>
+      <button class="btn-danger" id="c-stop-btn" style="display:none" onclick="stopCampaign()">■ Stop</button>
+      <button onclick="resetCampaign()">↺ Reset</button>
+    </div>
+
+    <!-- Preview -->
+    <div id="c-preview" style="display:none"></div>
+
+    <hr class="divider" />
+
+    <!-- Campaign stats -->
+    <div id="c-stats" class="g4" style="display:none; margin-bottom:1rem"></div>
+
+    <!-- Progress -->
+    <div id="c-progress" style="display:none">
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span id="c-prog-label">Initialising...</span>
+          <span id="c-prog-pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="c-prog-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Send log -->
+    <div id="c-log" class="log-wrap" style="display:none"></div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     JavaScript
+════════════════════════════════════════ -->
+<script>
+/* ─── Tab switching ─── */
+function switchTab(id) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+/* ─── Email validator core ─── */
+const DISPOSABLE = ['mailinator','tempmail','guerrillamail','throwaway',
+  'yopmail','trashmail','fakeinbox','sharklasers','dispostable','maildrop'];
+const ROLE_ADDRS = ['admin','info','support','noreply','no-reply','postmaster',
+  'webmaster','contact','help','sales','marketing'];
+
+function validateEmail(raw) {
+  const email = raw.trim().toLowerCase();
+  if (!email) return { valid: false, reason: 'Empty' };
+  if (email.length > 254) return { valid: false, reason: 'Exceeds 254 chars' };
+
+  const atIdx = email.lastIndexOf('@');
+  if (atIdx < 1) return { valid: false, reason: 'Missing @' };
+
+  const local  = email.slice(0, atIdx);
+  const domain = email.slice(atIdx + 1);
+
+  if (local.length > 64)  return { valid: false, reason: 'Local part too long' };
+  if (!domain.includes('.')) return { valid: false, reason: 'Invalid domain' };
+  if (domain.startsWith('.') || domain.endsWith('.')) return { valid: false, reason: 'Domain starts/ends with dot' };
+  if (domain.includes('..')) return { valid: false, reason: 'Consecutive dots in domain' };
+  if (local.startsWith('.') || local.endsWith('.'))   return { valid: false, reason: 'Local starts/ends with dot' };
+  if (local.includes('..')) return { valid: false, reason: 'Consecutive dots in local' };
+
+  const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if (!re.test(email)) return { valid: false, reason: 'Invalid format' };
+
+  // Warnings (valid but flagged)
+  const tld = domain.split('.').pop();
+  if (tld.length < 2) return { valid: false, reason: 'Invalid TLD' };
+
+  const warns = [];
+  if (DISPOSABLE.some(d => domain.includes(d))) warns.push('Disposable domain');
+  if (ROLE_ADDRS.some(r => local === r))         warns.push('Role-based address');
+
+  return { valid: true, warn: warns.length ? warns[0] : null };
+}
+
+/* ─── Parse raw email input ─── */
+function parseEmailList(raw) {
+  // split by newline or comma, extract email+name
+  const lines = raw.split('\n').flatMap(l => l.split(','));
+  const seen = new Set();
+  const result = [];
+  for (const part of lines) {
+    const t = part.trim();
+    if (!t) continue;
+    const atIdx = t.lastIndexOf('@');
+    if (atIdx === -1) continue;
+    // find the email: work backwards/forwards from @
+    const match = t.match(/([^\s,<>"]+@[^\s,>"]+)/);
+    if (!match) continue;
+    const email = match[1].toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+    result.push(email);
+  }
+  return result;
+}
+
+/* ─── Parse recipients with optional name ─── */
+function parseRecipients(raw) {
+  const lines = raw.split('\n');
+  const result = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const parts = line.split(',').map(s => s.trim()).filter(Boolean);
+    if (!parts.length) continue;
+    const email = parts[0].toLowerCase();
+    if (!email) continue;
+    if (seen.has(email)) continue;
+    seen.add(email);
+    const name = parts[1] || email.split('@')[0];
+    result.push({ email, name });
+  }
+  return result;
+}
+
+/* ─── Validator logic ─── */
+let validEmails = [];
+
+function runValidation() {
+  const raw = document.getElementById('v-input').value;
+  if (!raw.trim()) return;
+
+  const emails  = parseEmailList(raw);
+  if (!emails.length) {
+    document.getElementById('v-results').innerHTML = `<div class="empty-state"><div class="empty-icon">⊘</div><div class="empty-msg">No recognisable emails found</div></div>`;
+    return;
+  }
+
+  const results = emails.map(e => ({ email: e, ...validateEmail(e) }));
+  validEmails   = results.filter(r => r.valid).map(r => r.email);
+
+  const total   = results.length;
+  const valid   = results.filter(r => r.valid && !r.warn).length;
+  const warned  = results.filter(r => r.valid && r.warn).length;
+  const invalid = results.filter(r => !r.valid).length;
+  const dupeRaw = raw.split('\n').flatMap(l => l.split(',')).filter(s => {
+    const m = s.match(/([^\s,<>"]+@[^\s,>"]+)/);
+    return m;
+  }).length - emails.length;
+
+  // Stats
+  const statsEl = document.getElementById('v-stats');
+  statsEl.style.display = 'grid';
+  statsEl.innerHTML = `
+    <div class="metric-card"><div class="metric-val">${total}</div><div class="metric-lbl">Checked</div></div>
+    <div class="metric-card"><div class="metric-val col-green">${valid}</div><div class="metric-lbl">Valid</div></div>
+    <div class="metric-card"><div class="metric-val col-warn">${warned}</div><div class="metric-lbl">Warnings</div></div>
+    <div class="metric-card"><div class="metric-val col-red">${invalid}</div><div class="metric-lbl">Invalid</div></div>
+  `;
+
+  // Table
+  document.getElementById('v-results').innerHTML = `
+    <div class="results-wrap">
+      <div class="results-header">
+        <span>Email</span>
+        <span>Reason / Note</span>
+        <span>Status</span>
+      </div>
+      ${results.map(r => `
+        <div class="result-row">
+          <div class="email-cell">${r.email}</div>
+          <div class="reason-cell">${r.warn || r.reason || '—'}</div>
+          <div>${r.warn
+            ? `<span class="badge badge-warn">Caution</span>`
+            : r.valid
+            ? `<span class="badge badge-valid">Valid</span>`
+            : `<span class="badge badge-invalid">Invalid</span>`}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Export buttons
+  const show = validEmails.length > 0;
+  document.getElementById('v-export-btn').style.display = show ? 'inline-block' : 'none';
+  document.getElementById('v-copy-btn').style.display   = show ? 'inline-block' : 'none';
+  document.getElementById('v-use-btn').style.display    = show ? 'inline-block' : 'none';
+}
+
+function clearValidator() {
+  document.getElementById('v-input').value = '';
+  document.getElementById('v-results').innerHTML = '';
+  document.getElementById('v-stats').style.display = 'none';
+  ['v-export-btn','v-copy-btn','v-use-btn'].forEach(id => document.getElementById(id).style.display = 'none');
+  validEmails = [];
+}
+
+function exportValid() {
+  const blob = new Blob([validEmails.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'valid_emails.txt';
+  a.click();
+}
+
+function copyValid() {
+  navigator.clipboard.writeText(validEmails.join('\n')).then(() => {
+    const btn = document.getElementById('v-copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '⎘ Copy Valid', 1800);
+  });
+}
+
+function useInCampaign() {
+  document.getElementById('c-recipients').value = validEmails.join('\n');
+  // switch tab
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-campaign').classList.add('active');
+  document.querySelectorAll('.tab-btn')[1].classList.add('active');
+}
+
+/* ─── Campaign logic ─── */
+let campaignRunning = false;
+
+async function runCampaign() {
+  const recipientsRaw = document.getElementById('c-recipients').value;
+  const subject       = document.getElementById('c-subject').value.trim();
+  const body          = document.getElementById('c-body').value.trim();
+  const senderName    = document.getElementById('c-name').value.trim() || 'Sender';
+  const senderEmail   = document.getElementById('c-from').value.trim() || 'noreply@example.com';
+  const delay         = parseInt(document.getElementById('c-delay').value) || 500;
+
+  if (!recipientsRaw.trim()) { alert('Please add recipients.'); return; }
+  if (!subject)               { alert('Subject line is required.'); return; }
+  if (!body)                  { alert('Email body is required.');   return; }
+
+  const allRecipients = parseRecipients(recipientsRaw);
+  if (!allRecipients.length)  { alert('No valid recipients found.'); return; }
+
+  // Validate each
+  const valid   = allRecipients.filter(r => validateEmail(r.email).valid);
+  const skipped = allRecipients.length - valid.length;
+  const total   = valid.length;
+
+  if (total === 0) { alert('All emails are invalid — nothing to send.'); return; }
+
+  campaignRunning = true;
+  document.getElementById('c-send-btn').disabled = true;
+  document.getElementById('c-stop-btn').style.display = 'inline-block';
+
+  const statsEl    = document.getElementById('c-stats');
+  const progressEl = document.getElementById('c-progress');
+  const logEl      = document.getElementById('c-log');
+
+  statsEl.style.display    = 'grid';
+  progressEl.style.display = 'block';
+  logEl.style.display      = 'block';
+  logEl.innerHTML = '';
+
+  let sent = 0, failed = 0;
+
+  function updateStats() {
+    statsEl.innerHTML = `
+      <div class="metric-card"><div class="metric-val">${total}</div><div class="metric-lbl">Total</div></div>
+      <div class="metric-card"><div class="metric-val col-green">${sent}</div><div class="metric-lbl">Sent</div></div>
+      <div class="metric-card"><div class="metric-val col-red">${failed}</div><div class="metric-lbl">Failed</div></div>
+      <div class="metric-card"><div class="metric-val col-warn">${skipped}</div><div class="metric-lbl">Skipped</div></div>`;
+  }
+
+  updateStats();
+
+  for (let i = 0; i < valid.length; i++) {
+    if (!campaignRunning) break;
+
+    const r = valid[i];
+    await sleep(delay + Math.random() * 200);
+
+    // Simulate send (replace with real SMTP/API call)
+    const ok = simulateSend(r.email);
+    if (ok) sent++; else failed++;
+
+    const pct = Math.round(((i + 1) / total) * 100);
+    document.getElementById('c-prog-fill').style.width = pct + '%';
+    document.getElementById('c-prog-pct').textContent  = pct + '%';
+    document.getElementById('c-prog-label').textContent = `Sending ${i + 1} of ${total}…`;
+
+    updateStats();
+
+    // Log entry
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    row.innerHTML = `
+      <div class="log-dot ${ok ? 'dot-ok' : 'dot-fail'}"></div>
+      <span class="log-email">${r.email}</span>
+      <span class="log-name">(${r.name})</span>
+      <span class="log-status" style="color:${ok ? 'var(--accent)' : 'var(--danger)'}">${ok ? 'sent' : 'failed'}</span>`;
+    logEl.prepend(row);
+  }
+
+  document.getElementById('c-prog-label').textContent = campaignRunning ? '✓ Campaign complete' : '■ Stopped';
+  document.getElementById('c-send-btn').disabled = false;
+  document.getElementById('c-stop-btn').style.display = 'none';
+  campaignRunning = false;
+}
+
+function stopCampaign() {
+  campaignRunning = false;
+  document.getElementById('c-send-btn').disabled = false;
+  document.getElementById('c-stop-btn').style.display = 'none';
+  document.getElementById('c-prog-label').textContent = '■ Campaign stopped';
+}
+
+function resetCampaign() {
+  stopCampaign();
+  document.getElementById('c-stats').style.display    = 'none';
+  document.getElementById('c-progress').style.display = 'none';
+  document.getElementById('c-log').style.display      = 'none';
+  document.getElementById('c-preview').style.display  = 'none';
+  document.getElementById('c-log').innerHTML = '';
+  document.getElementById('c-prog-fill').style.width = '0%';
+  document.getElementById('c-prog-pct').textContent  = '0%';
+}
+
+function previewEmail() {
+  const subject = document.getElementById('c-subject').value || '(no subject)';
+  const body    = document.getElementById('c-body').value    || '(empty body)';
+  const from    = document.getElementById('c-name').value    || 'Sender';
+  const fromEmail = document.getElementById('c-from').value  || 'sender@example.com';
+
+  const highlightedBody = body.replace(/\{\{name\}\}/g,
+    '<span class="name-token">{{name}}</span>');
+
+  const el = document.getElementById('c-preview');
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="preview-panel">
+      <div class="preview-topbar">Email preview</div>
+      <div class="preview-body">
+        <div class="preview-field"><span class="pf-key">From</span><span class="pf-val">"${from}" &lt;${fromEmail}&gt;</span></div>
+        <div class="preview-field"><span class="pf-key">To</span><span class="pf-val">recipient@example.com</span></div>
+        <div class="preview-field"><span class="pf-key">Subject</span><span class="pf-val">${subject}</span></div>
+        <div class="preview-content">${highlightedBody}</div>
+      </div>
+    </div>`;
+}
+
+/* ─── Helpers ─── */
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function simulateSend(email) {
+  // Simulated 92% success rate — replace with real API call
+  return Math.random() > 0.08;
+}
+
+/* ─── Real sending stub (Nodemailer / API) ───
+   Replace simulateSend() with an actual fetch call:
+
+   async function realSend(to, name, subject, bodyTemplate, from) {
+     const body = bodyTemplate.replace(/\{\{name\}\}/g, name);
+     const res = await fetch('/api/send-email', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ to, subject, body, from })
+     });
+     return res.ok;
+   }
+─────────────────────────────────────────── */
+</script>
+</body>
+</html>
